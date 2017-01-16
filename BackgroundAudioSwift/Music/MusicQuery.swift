@@ -37,51 +37,51 @@ class MusicQuery: NSObject {
     - songCount: total songs on the device
     
     */
-    func queryForSongs(completionHandler:(result:NSDictionary) -> Void) {
-        let query = MPMediaQuery.artistsQuery()
-        let songsByArtist = query.collections as [MPMediaItemCollection]
+    func queryForSongs(_ completionHandler:(_ result:NSDictionary) -> Void) {
+        let query = MPMediaQuery.artists()
+        let songsByArtist = query.collections! as [MPMediaItemCollection]
         
         var songCount = 0
-        var artists:[AnyObject] = [AnyObject]()
-        var albumSortingDictionary:NSMutableDictionary = NSMutableDictionary()
+        var artists = [AnyObject]()
+        let albumSortingDictionary:NSMutableDictionary = NSMutableDictionary()
         
         for album in songsByArtist {
             let albumSongs = album.items as [MPMediaItem]
             for songMediumItem in albumSongs {
-                var artistName:String = songMediumItem.valueForProperty(MPMediaItemPropertyArtist) as? String ?? ""
-                var albumName:String = songMediumItem.valueForProperty(MPMediaItemPropertyAlbumTitle) as? String ?? ""
-                let songTitle:String = songMediumItem.valueForProperty(MPMediaItemPropertyTitle) as? String ?? ""
-                let songId:NSNumber = songMediumItem.valueForProperty(MPMediaItemPropertyPersistentID) as NSNumber
+                let artistName:String = songMediumItem.value(forProperty: MPMediaItemPropertyArtist) as? String ?? ""
+                let albumName:String = songMediumItem.value(forProperty: MPMediaItemPropertyAlbumTitle) as? String ?? ""
+                let songTitle:String = songMediumItem.value(forProperty: MPMediaItemPropertyTitle) as? String ?? ""
+                let songId:NSNumber = songMediumItem.value(forProperty: MPMediaItemPropertyPersistentID) as! NSNumber
                 
-                var artistAlbum = albumSortingDictionary.objectForKey(albumName) as? NSDictionary
+                var artistAlbum = albumSortingDictionary.object(forKey: albumName) as? NSDictionary
                 if (artistAlbum == nil) {
-                    artistAlbum = NSDictionary(objects: [artistName,albumName,NSMutableArray()], forKeys: ["artist","album","songs"])
+                    artistAlbum = NSDictionary(objects: [artistName,albumName,NSMutableArray()], forKeys: ["artist" as NSCopying,"album" as NSCopying,"songs" as NSCopying])
                     albumSortingDictionary[albumName] = artistAlbum
                 }
                 
-                var songs:NSMutableArray = artistAlbum!["songs"] as NSMutableArray
+                let songs:NSMutableArray = artistAlbum!["songs"] as! NSMutableArray
                 let song:NSDictionary = ["title":songTitle, "songId":songId]
-                songs.addObject(song)
-                songCount++
+                songs.add(song)
+                songCount += 1
             }
             
             
             //sort by AlbumName
-            let sortedAlbumsByName = albumSortingDictionary.keysSortedByValueUsingComparator { (obj1:AnyObject! , obj2:AnyObject!) -> NSComparisonResult in
-                let one = obj1 as NSDictionary
-                let two = obj2 as NSDictionary
-                return (one["album"] as String).localizedCaseInsensitiveCompare((two["album"] as String))
-            }
+            let sortedAlbumsByName = albumSortingDictionary.keysSortedByValue(comparator: { (obj1:Any! , obj2:Any!) -> ComparisonResult in
+                let one = obj1 as! NSDictionary
+                let two = obj2 as! NSDictionary
+                return (one["album"] as! String).localizedCaseInsensitiveCompare((two["album"] as! String))
+            })
             
             for album in sortedAlbumsByName {
-                let artistAlbum: AnyObject? = albumSortingDictionary[(album as String)]
-                artists.append(artistAlbum!)
+                let artistAlbum = albumSortingDictionary[(album as! String)]
+                artists.append(artistAlbum as AnyObject)
             }
             
             albumSortingDictionary.removeAllObjects()
         }
         
-        completionHandler(result: NSDictionary(objects: [artists, songCount], forKeys: ["artists", "songCount"]))
+        completionHandler(NSDictionary(objects: [artists, songCount], forKeys: ["artists" as NSCopying, "songCount" as NSCopying]))
         
     }
     
@@ -91,11 +91,13 @@ class MusicQuery: NSObject {
     :param: songId            the songPerstistenceId
     :param: completionHandler MPMediaItem single instance
     */
-    func queryForSongWithId(songId:NSNumber, completionHandler:(result:MPMediaItem?) -> Void) {
+    func queryForSongWithId(_ songId:NSNumber, completionHandler:(_ result:MPMediaItem?) -> Void) {
         let mediaItemPersistenceIdPredicate:MPMediaPropertyPredicate =
         MPMediaPropertyPredicate(value: songId, forProperty: MPMediaItemPropertyPersistentID)
-        let songQuery = MPMediaQuery(filterPredicates: NSSet(object: mediaItemPersistenceIdPredicate))
-        completionHandler(result: songQuery.items.last as? MPMediaItem)
+        
+        let songQuery = MPMediaQuery(filterPredicates: NSSet(object: mediaItemPersistenceIdPredicate) as? Set<MPMediaPredicate>)
+        
+        completionHandler(songQuery.items?.last)
     }
     
     

@@ -28,7 +28,7 @@ class DetailViewController: UIViewController {
             if let songs = nonNilArtistAlbum["songs"] as? [NSDictionary] {
                 let song = songs[songIndex]
                 songTitleLabel.text = song["title"] as? String
-                let songId = song["songId"] as NSNumber
+                let songId = song["songId"] as! NSNumber
                 songIdLabel.text = "\(songId)"
             }
         }
@@ -44,43 +44,54 @@ class DetailViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
 
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         configureView()
     }
     
-    override func viewDidAppear(animated: Bool) {
+    override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if let nonNilArtistAlbum = artistAlbum {
-            let song = (nonNilArtistAlbum["songs"] as NSArray).objectAtIndex(songIndex) as NSDictionary
-            self.musicPlayer.playSongWithId(song["songId"] as NSNumber, title:song["title"] as String, artist:nonNilArtistAlbum["artist"] as String)
+            let song = (nonNilArtistAlbum["songs"] as! NSArray).object(at: songIndex) as! NSDictionary
+            musicPlayer.playSongWithId(song["songId"] as! NSNumber, title:song["title"] as! String,
+                                            artist:nonNilArtistAlbum["artist"] as! String)
+            musicPlayer.songIsAvailable(songId: song["songId"] as! NSNumber, completion: { (available) in
+                if available {
+                    self.musicPlayer.playSongWithId(song["songId"] as! NSNumber, title:song["title"] as! String,
+                                               artist:nonNilArtistAlbum["artist"] as! String)
+                    UIApplication.shared.beginReceivingRemoteControlEvents()
+                    self.becomeFirstResponder()
+                } else {
+                    let alertVC = UIAlertController(title:"Error", message:"Song is not available. It may not be downloaded", preferredStyle:.alert)
+                    alertVC.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+                    self.present(alertVC, animated: true, completion: nil)
+                }
+            })
             
         }
-        UIApplication.sharedApplication().beginReceivingRemoteControlEvents()
-        becomeFirstResponder()
     }
 
-    override func viewDidDisappear(animated: Bool) {
+    override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        UIApplication.sharedApplication().endReceivingRemoteControlEvents()
+        UIApplication.shared.endReceivingRemoteControlEvents()
     }
     //MARK: - user actions
-    @IBAction func playPauseButtonTapped(sender: UIButton) {
+    @IBAction func playPauseButtonTapped(_ sender: UIButton) {
         if (sender.titleLabel?.text == "Pause") {
-            sender.setTitle("Play", forState: .Normal)
+            sender.setTitle("Play", for: UIControlState())
             musicPlayer.pause()
         } else {
-            sender.setTitle("Pause", forState: .Normal)
+            sender.setTitle("Pause", for: UIControlState())
             musicPlayer.play()
         }
     }
 
     //MARK: - events received from phone
-    override func remoteControlReceivedWithEvent(event: UIEvent) {
-        musicPlayer.remoteControlReceivedWithEvent(event)
+    override func remoteControlReceived(with event: UIEvent?) {
+        musicPlayer.remoteControlReceivedWithEvent(event!)
     }
     
-    override func canBecomeFirstResponder() -> Bool {
+    override var canBecomeFirstResponder : Bool {
         //allow this instance to receive remote control events
         return true
     }

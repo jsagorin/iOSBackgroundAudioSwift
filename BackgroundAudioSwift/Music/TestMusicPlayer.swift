@@ -37,23 +37,12 @@ class TestMusicPlayer: NSObject {
     */
     class func initSession() {
         
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "audioSessionInterrupted:", name: AVAudioSessionInterruptionNotification, object: AVAudioSession.sharedInstance())
-        var error:NSError?
-
-        AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayback, error: &error)
-        
-        if let nonNilError = error {
-            println("an error occurred when audio session category.\n \(error)")
-        }
-        
-        var activationError:NSError?
-        let success = AVAudioSession.sharedInstance().setActive(true, error: &activationError)
-        if !success {
-            if let nonNilActivationError = activationError {
-                println("an error occurred when audio session category.\n \(nonNilActivationError)")
-            } else {
-                println("audio session could not be activated")
-            }
+        NotificationCenter.default.addObserver(self, selector: #selector(TestMusicPlayer.audioSessionInterrupted(_:)), name: NSNotification.Name.AVAudioSessionInterruption, object: AVAudioSession.sharedInstance())
+        do {
+            try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayback)
+            let _ = try AVAudioSession.sharedInstance().setActive(true)
+        } catch let error as NSError {
+            print("an error occurred when audio session category.\n \(error)")
         }
     }
     
@@ -71,43 +60,60 @@ class TestMusicPlayer: NSObject {
         avQueuePlayer.play()
     }
     
-    func playSongWithId(songId:NSNumber, title:String, artist:String) {
+    func playSongWithId(_ songId:NSNumber, title:String, artist:String) {
         MusicQuery().queryForSongWithId(songId, completionHandler: {[weak self] (result:MPMediaItem?) -> Void in
             if let nonNilResult = result {
-                let assetUrl:NSURL = nonNilResult.valueForProperty(MPMediaItemPropertyAssetURL) as NSURL
-                let avSongItem = AVPlayerItem(URL: assetUrl)
-                self!.avQueuePlayer.insertItem(avSongItem, afterItem: nil)
-                self!.play()
-                //display now playing info on control center
-                MPNowPlayingInfoCenter.defaultCenter().nowPlayingInfo = [MPMediaItemPropertyTitle: title, MPMediaItemPropertyArtist: artist]
+                if let assetUrl = nonNilResult.value(forProperty:MPMediaItemPropertyAssetURL) as? URL {
+                    let avSongItem = AVPlayerItem(url: assetUrl)
+                    self!.avQueuePlayer.insert(avSongItem, after: nil)
+                    self!.play()
+                    //display now playing info on control center
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: title, MPMediaItemPropertyArtist: artist]
+                } else {
+                    print("assetURL for song \(songId) does not exist")
+                }
             }
         })
         
     }
     
-    //MARK: - Notifications
-    func audioSessionInterrupted(notification:NSNotification)
+    func songIsAvailable(songId:NSNumber, completion:((Bool)->Void)? = nil)
     {
-        println("interruption received: \(notification)")
+        MusicQuery().queryForSongWithId(songId, completionHandler: {(result:MPMediaItem?) -> Void in
+            if let nonNilResult = result {
+                if let _ = nonNilResult.value(forProperty:MPMediaItemPropertyAssetURL) as? URL {
+                    completion?(true)
+                } else {
+                    completion?(false)
+                }
+            }
+        })
+    }
+
+    
+    //MARK: - Notifications
+    class func audioSessionInterrupted(_ notification:Notification)
+    {
+        print("interruption received: \(notification)")
     }
     
     //response to remote control events
     
-    func remoteControlReceivedWithEvent(receivedEvent:UIEvent)  {
-        if (receivedEvent.type == .RemoteControl) {
+    func remoteControlReceivedWithEvent(_ receivedEvent:UIEvent)  {
+        if (receivedEvent.type == .remoteControl) {
             switch receivedEvent.subtype {
-            case .RemoteControlTogglePlayPause:
+            case .remoteControlTogglePlayPause:
                 if avQueuePlayer.rate > 0.0 {
                     pause()
                 } else {
                     play()
                 }
-            case .RemoteControlPlay:
+            case .remoteControlPlay:
                 play()
-            case .RemoteControlPause:
+            case .remoteControlPause:
                 pause()
             default:
-                println("received sub type \(receivedEvent.subtype) Ignoring")
+                print("received sub type \(receivedEvent.subtype) Ignoring")
             }
         }
     }

@@ -37,9 +37,11 @@ class TestMusicPlayer: NSObject {
     */
     class func initSession() {
         
-        NotificationCenter.default.addObserver(self, selector: #selector(TestMusicPlayer.audioSessionInterrupted(_:)), name: NSNotification.Name.AVAudioSessionInterruption, object: AVAudioSession.sharedInstance())
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(TestMusicPlayer.audioSessionInterrupted(_:)),
+                                               name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
         do {
-            try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayback)
+            try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback)
             let _ = try AVAudioSession.sharedInstance().setActive(true)
         } catch let error as NSError {
             print("an error occurred when audio session category.\n \(error)")
@@ -92,7 +94,7 @@ class TestMusicPlayer: NSObject {
 
     
     //MARK: - Notifications
-    class func audioSessionInterrupted(_ notification:Notification)
+    @objc class func audioSessionInterrupted(_ notification:Notification)
     {
         print("interruption received: \(notification)")
     }

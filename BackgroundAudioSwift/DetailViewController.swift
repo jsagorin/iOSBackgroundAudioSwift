@@ -78,10 +78,10 @@ class DetailViewController: UIViewController {
     //MARK: - user actions
     @IBAction func playPauseButtonTapped(_ sender: UIButton) {
         if (sender.titleLabel?.text == "Pause") {
-            sender.setTitle("Play", for: UIControlState())
+            sender.setTitle("Play", for: UIControl.State())
             musicPlayer.pause()
         } else {
-            sender.setTitle("Pause", for: UIControlState())
+            sender.setTitle("Pause", for: UIControl.State())
             musicPlayer.play()
         }
     }

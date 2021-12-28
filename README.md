@@ -1,10 +1,9 @@
 iOSBackgroundAudioSwift
 ==================
 
-Sample iOS 8 code (Swift) for playing audio in the background. 
- - Demonstrates iTunes music queries, playing songs, and remote control events received in the control center.
-For more details, see this blog post: http://www.sagorin.org/ios-playing-audio-in-background-audio/
+Sample iOS 15 code (Swift) for playing audio in the background on an iOS app. Demonstrates MPMedia music queries, playing songs, and remote control events received in the control center. For more details, read this blog post: http://www.sagorin.org/ios-playing-audio-in-background-audio/
 
-Run code on a device with some music (no songs in the iOS simulator)
+
+NOTE: Run code on a device with downloaded songs.
 
 For the Objective-C version of this code, see https://github.com/jsagorin/iOSBackgroundAudio
